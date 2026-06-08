@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tracker C3 — José Miguel</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f0f11;
+    --surface: #1a1a1f;
+    --surface2: #22222a;
+    --border: rgba(255,255,255,0.08);
+    --border2: rgba(255,255,255,0.14);
+    --text: #f0eee8;
+    --muted: #888680;
+    --algebra: #7c6ef5;
+    --algebra-soft: rgba(124,110,245,0.12);
+    --geometria: #f07a4a;
+    --geometria-soft: rgba(240,122,74,0.12);
+    --calculo: #4ab3f5;
+    --calculo-soft: rgba(74,179,245,0.12);
+    --green: #3ecf8e;
+    --green-soft: rgba(62,207,142,0.15);
+    --red: #f56565;
+    --radius: 12px;
+    --radius-sm: 8px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 2rem 1rem;
+  }
+  .container { max-width: 680px; margin: 0 auto; }
+
+  .top { margin-bottom: 2rem; }
+  .top h1 { font-size: 22px; font-weight: 600; letter-spacing: -0.3px; }
+  .top p { font-size: 13px; color: var(--muted); margin-top: 4px; }
+
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin-bottom: 1.5rem;
+  }
+  .stat {
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 14px 12px;
+    text-align: center;
+  }
+  .stat-num { font-size: 24px; font-weight: 600; font-family: 'DM Mono', monospace; }
+  .stat-label { font-size: 11px; color: var(--muted); margin-top: 3px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+  .global-bar {
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 14px 16px;
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .global-bar span { font-size: 12px; color: var(--muted); white-space: nowrap; }
+  .bar-track { flex: 1; height: 6px; background: var(--surface2); border-radius: 3px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 3px; background: var(--green); transition: width 0.4s ease; }
+
+  .ramo {
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius);
+    margin-bottom: 12px;
+    overflow: hidden;
+  }
+  .ramo-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 18px 12px;
+  }
+  .ramo-left { display: flex; align-items: center; gap: 10px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .ramo-name { font-size: 15px; font-weight: 500; }
+  .fecha-pill {
+    font-size: 11px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .urgente { background: rgba(245,101,101,0.15); color: #f56565; }
+  .pronto { background: rgba(74,179,245,0.15); color: #4ab3f5; }
+  .ramo-pct { font-size: 12px; color: var(--muted); font-family: 'DM Mono', monospace; }
+
+  .ramo-bar { height: 2px; margin: 0 18px 10px; background: var(--surface2); border-radius: 1px; overflow: hidden; }
+  .ramo-bar-fill { height: 100%; border-radius: 1px; transition: width 0.3s ease; }
+
+  .tema-list { padding: 2px 8px 10px; }
+  .tema-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 9px 10px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: background 0.1s;
+    user-select: none;
+  }
+  .tema-item:hover { background: var(--surface2); }
+  .cb {
+    width: 18px; height: 18px;
+    border: 1.5px solid rgba(255,255,255,0.2);
+    border-radius: 5px;
+    flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    margin-top: 1px;
+    transition: all 0.15s;
+    font-size: 11px;
+    font-weight: 700;
+  }
+  .cb.on { background: var(--green); border-color: var(--green); color: #0f0f11; }
+  .tema-txt { font-size: 14px; line-height: 1.45; transition: color 0.15s; }
+  .tema-txt.done { color: var(--muted); text-decoration: line-through; }
+
+  .reset-btn {
+    display: block;
+    margin: 1.5rem auto 0;
+    background: transparent;
+    border: 0.5px solid var(--border2);
+    color: var(--muted);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px;
+    padding: 8px 18px;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .reset-btn:hover { border-color: var(--red); color: var(--red); }
+
+  @media (max-width: 480px) {
+    .stats { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="top">
+    <h1>Tracker C3</h1>
+    <p>Haz clic en cada tema para marcarlo como estudiado</p>
+  </div>
+  <div class="stats">
+    <div class="stat"><div class="stat-num" id="s-total">0</div><div class="stat-label">Temas</div></div>
+    <div class="stat"><div class="stat-num" id="s-done">0</div><div class="stat-label">Listos</div></div>
+    <div class="stat"><div class="stat-num" id="s-pct">0%</div><div class="stat-label">Avance</div></div>
+    <div class="stat"><div class="stat-num" id="s-left">0</div><div class="stat-label">Pendientes</div></div>
+  </div>
+  <div class="global-bar">
+    <span>Progreso total</span>
+    <div class="bar-track"><div class="bar-fill" id="g-bar" style="width:0%"></div></div>
+    <span id="g-pct">0%</span>
+  </div>
+  <div id="ramos"></div>
+  <button class="reset-btn" onclick="resetAll()">Reiniciar progreso</button>
+</div>
+
+<script>
+const RAMOS = [
+  {
+    id: "algebra",
+    nombre: "Álgebra Lineal",
+    fecha: "20 jun",
+    urgencia: "urgente",
+    color: "#7c6ef5",
+    temas: [
+      "Núcleo e imagen de transformaciones lineales",
+      "Teorema de las dimensiones (nulidad + rango)",
+      "Matriz asociada a una transformación lineal",
+      "Valores propios (eigenvalues) — cálculo",
+      "Vectores propios (eigenvectors) — cálculo",
+      "Subespacios propios y diagonalización"
+    ]
+  },
+  {
+    id: "geometria",
+    nombre: "Geometría",
+    fecha: "20 jun",
+    urgencia: "urgente",
+    color: "#f07a4a",
+    temas: [
+      "Circunferencia — ecuación y propiedades",
+      "Elipse — elementos y ecuación",
+      "Parábola — elementos y ecuación",
+      "Hipérbola — elementos y ecuación",
+      "Vectores en el espacio (R³)",
+      "Producto cruz — cálculo e interpretación",
+      "Ecuación del plano",
+      "Ecuación de la recta en R³",
+      "Distancias punto-plano y punto-recta"
+    ]
+  },
+  {
+    id: "calculo",
+    nombre: "Cálculo Diferencial",
+    fecha: "27 jun",
+    urgencia: "pronto",
+    color: "#4ab3f5",
+    temas: [
+      "Derivación implícita",
+      "Derivadas de orden superior",
+      "Derivación logarítmica",
+      "Diferencial de una función",
+      "Regla de L'Hôpital",
+      "Teorema de Rolle y valor medio",
+      "Optimización (máximos y mínimos)",
+      "Trazado de curvas completo"
+    ]
+  }
+];
+
+const KEY = "tracker_c3_jm";
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(KEY);
+    if (raw) return JSON.parse(raw);
+  } catch(e) {}
+  const s = {};
+  RAMOS.forEach(r => { s[r.id] = new Array(r.temas.length).fill(false); });
+  return s;
+}
+
+function saveState(s) {
+  localStorage.setItem(KEY, JSON.stringify(s));
+}
+
+let state = loadState();
+
+function render() {
+  const container = document.getElementById('ramos');
+  container.innerHTML = '';
+  let totalAll = 0, doneAll = 0;
+
+  RAMOS.forEach(ramo => {
+    const checks = state[ramo.id];
+    const done = checks.filter(Boolean).length;
+    const total = ramo.temas.length;
+    totalAll += total; doneAll += done;
+    const pct = total ? Math.round(done / total * 100) : 0;
+
+    const div = document.createElement('div');
+    div.className = 'ramo';
+    div.innerHTML = `
+      <div class="ramo-header">
+        <div class="ramo-left">
+          <div class="dot" style="background:${ramo.color}"></div>
+          <span class="ramo-name">${ramo.nombre}</span>
+          <span class="fecha-pill ${ramo.urgencia}">📅 ${ramo.fecha}</span>
+        </div>
+        <span class="ramo-pct">${done}/${total}</span>
+      </div>
+      <div class="ramo-bar"><div class="ramo-bar-fill" style="width:${pct}%; background:${ramo.color};"></div></div>
+      <div class="tema-list">
+        ${ramo.temas.map((t, i) => `
+          <div class="tema-item" data-ramo="${ramo.id}" data-idx="${i}">
+            <div class="cb ${checks[i] ? 'on' : ''}">${checks[i] ? '✓' : ''}</div>
+            <span class="tema-txt ${checks[i] ? 'done' : ''}">${t}</span>
+          </div>
+        `).join('')}
+      </div>
+    `;
+    container.appendChild(div);
+  });
+
+  const pctAll = totalAll ? Math.round(doneAll / totalAll * 100) : 0;
+  document.getElementById('s-total').textContent = totalAll;
+  document.getElementById('s-done').textContent = doneAll;
+  document.getElementById('s-pct').textContent = pctAll + '%';
+  document.getElementById('s-left').textContent = totalAll - doneAll;
+  document.getElementById('g-bar').style.width = pctAll + '%';
+  document.getElementById('g-pct').textContent = pctAll + '%';
+
+  document.querySelectorAll('.tema-item').forEach(el => {
+    el.addEventListener('click', () => {
+      const r = el.dataset.ramo, i = parseInt(el.dataset.idx);
+      state[r][i] = !state[r][i];
+      saveState(state);
+      render();
+    });
+  });
+}
+
+function resetAll() {
+  if (confirm('¿Reiniciar todo el progreso?')) {
+    RAMOS.forEach(r => { state[r.id] = new Array(r.temas.length).fill(false); });
+    saveState(state);
+    render();
+  }
+}
+
+render();
+</script>
+</body>
+</html>
